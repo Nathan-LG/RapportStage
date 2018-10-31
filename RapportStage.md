@@ -118,3 +118,15 @@ Le second quartier atypique est le Strip. Le Strip fait 7,2 km de long, c'est l'
 
 ## L'Université du Nevada, Las Vegas (UNLV)
 
+J'ai effectué mon stage au sein du College of Engineering de l'Université du Nevada, Las Vegas. Véritable ville dans la ville, plus de 30 000 étudiants y font leur études pour acquérir l'un des 350 diplômes que l'école offre. La directrice actuelle est Marta Meana, instituée le 1<sup>er</sup> juillet 2018.
+
+Comme expliqué précédemment, la région de Las Vegas a été choisie en 1951 comme lieu phare des essais nucléaires américains. L'afflux d'employés gouvernementaux a créé un changement démographique dans la population de Las Vegas. La demande en éducation étant de plus en plus importante, une université fut créée en 1957, alors considérée comme une extension régionale de l'Université de Reno, la première université publique créée au Nevada. Les premiers diplômés sortirent de l'école en 1964. L'université fut ensuite temporairement appelée *Nevada Southern University*, puis s’émancipa de l'Université de Reno en 1969, année où le nom University of Nevada, Las Vegas (UNLV) fut officialisé.
+
+Depuis, l'Université ne cesse de grandir, étoffant régulièrement les diplômes proposés, et son rayonnement national et international s’accroît. C'est par exemple l'UNLV qui a accueilli le dernier débat présidentiel entre Hillary Clinton et Donald Trump. L'école de journalisme de l'UNLV a couvert le débat sur la chaîne locale UNLV-TV.
+
+Le pôle de recherche est reconnue comme étant un pôle majeur aux États-Unis. Les fonds y étant alloués sont en augmentation depuis quatre ans. 61 brevets ont ainsi été déposés en 2016.
+
+Le campus fait 144 hectares et est situé au milieu de Las Vegas, entre le Strip et l'aéroport Mc Carran. Le bâtiment dans lequel j'ai travaillé est le *Science and Engineering Building* (SEB). Le bâtiment permet aux facultés de sciences, d'ingénieurie et de médecine de collaborer sur des projets communs. Notamment grâce à des équipements modernes et innovants tels que des microsondes EPMA (analyses chimiques non-destructives), des laboratoires spécialisés dans la culture de cellules eucaryotes (reproduction de tissus), ou encore des salles blanches dédiées à l'étude des nanotechnologies. 
+
+## Le projet et sa place dans la médecine actuelle
+
