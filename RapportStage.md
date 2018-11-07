@@ -28,7 +28,7 @@
 
 ​	Beaucoup de personnes souffrent de séquelles cognitives liées à un TCC sans le savoir. Elles sont la source de ce que l'on appelle plus communément le **handicap invisible**. Elles se manifestent différemment chez chaque patient et sont souvent une association de différents troubles comme des troubles de l'attention, de la concentration, une difficulté à marcher, etc. Ces troubles ne sont pas continuels et apparaissent occasionnellement. C'est là le plus gros problème : ils sont très difficiles à détecter. **Les patients peuvent n'avoir aucun symptômes pendant les consultations, mais être quand même atteints de séquelles**. 
 
-​	Mon stage consiste donc à créer un dispositif que les patients pourraient porter à domicile pour collecter continuellement des données accélérométriques, gyrométriques et cardiaques. Ainsi, ce facteur aléatoire lors des consultations est supprimé. Le patient n'aura plus qu'à donner l'heure à laquelle il a ressenti les symptômes, et le médecin pourra extraire les données récoltées à ce moment. De plus, il devra aussi être possible au médecin de voir en temps réel les données accélérométriques et gyrométriques.
+​	Mon stage consiste donc à créer un dispositif que les patients pourraient porter à domicile pour collecter continuellement des données accélérométriques, gyroscopiques et cardiaques. Ainsi, ce facteur aléatoire lors des consultations est supprimé. Le patient n'aura plus qu'à donner l'heure à laquelle il a ressenti les symptômes, et le médecin pourra extraire les données récoltées à ce moment. De plus, il devra aussi être possible au médecin de voir en temps réel les données accélérométriques et gyroscopiques.
 
 ​	La programmation s'est faite en C++, en Python et en Javascript. J'ai travaillé sur des systèmes Linux et des architectures ARM, et j'ai envoyé des comptes rendus au minimum deux fois par semaine à mon tuteur. De plus, nous faisions des réunions hebdomadaires.
 
@@ -124,9 +124,287 @@ Comme expliqué précédemment, la région de Las Vegas a été choisie en 1951 
 
 Depuis, l'Université ne cesse de grandir, étoffant régulièrement les diplômes proposés, et son rayonnement national et international s’accroît. C'est par exemple l'UNLV qui a accueilli le dernier débat présidentiel entre Hillary Clinton et Donald Trump. L'école de journalisme de l'UNLV a couvert le débat sur la chaîne locale UNLV-TV.
 
-Le pôle de recherche est reconnue comme étant un pôle majeur aux États-Unis. Les fonds y étant alloués sont en augmentation depuis quatre ans. 61 brevets ont ainsi été déposés en 2016.
+Le pôle de recherche est reconnu comme étant un des pôles majeurs aux États-Unis. Les fonds y étant alloués sont en augmentation depuis quatre ans. 61 brevets ont ainsi été déposés en 2016.
 
 Le campus fait 144 hectares et est situé au milieu de Las Vegas, entre le Strip et l'aéroport Mc Carran. Le bâtiment dans lequel j'ai travaillé est le *Science and Engineering Building* (SEB). Le bâtiment permet aux facultés de sciences, d'ingénieurie et de médecine de collaborer sur des projets communs. Notamment grâce à des équipements modernes et innovants tels que des microsondes EPMA (analyses chimiques non-destructives), des laboratoires spécialisés dans la culture de cellules eucaryotes (reproduction de tissus), ou encore des salles blanches dédiées à l'étude des nanotechnologies. 
 
 ## Le projet et sa place dans la médecine actuelle
+
+Tous les jours aux USA, 153 personnes meurent d'un Traumatisme Cranio-Cérébral (TCC, ou Traumatisme Crânien).[^1] C'est l'une des principales causes de mortalité et de handicap sévère avant 45 ans. 
+
+La notion de TCC couvre à la fois les traumatismes touchant la partie haute du crâne, et ceux touchant le cerveau. On y associe aussi parfois d'autres autres lésions cérébrales comme les accidents vasculaires cérébraux, les ruptures d'anévrysmes, les tumeurs, etc. Les principales lésions sont causées par l'accélération, la décélération ou la rotation violente du cerveau. C'est pourquoi ils sont principalement causés par les chutes et accidents de la route.[^1] D'autres lésions, appelées des contusions, sont dues à l'impact du cerveau contre les reliefs osseux à l'intérieur du crâne. Toutes ces lésions peuvent être plus ou moins sévères.
+
+La médecine sépare les différents cas en trois groupes : les TCC légers, les TCC moyens, et les TCC graves.  Le premier correspond à une brève perte de connaissance (entre 0 et 30 min) sans fracture du crâne, associée ou non à une courte amnésie (inférieure à 24h). Un TCC est caractérisé comme grave dès qu'un coma apparaît (score inférieur ou égal à 8 sur l'échelle de Glasgow). Les TCC moyens regroupent tous les cas intermédiaires.
+
+Un tiers des patients vont souffrir de Syndrome Post-Commotionnel (SPC).[^2] En 2006, il était estimé que 5,3 millions d'Américains en souffraient.[^3] Ces symptômes peuvent apparaître immédiatement après le TCC, mais aussi quelques semaines, voir quelque mois après le choc. De plus, ils peuvent tout à faire n'être qu'occasionnels, où ne se déclencher qu'à certains moments de la journée, ou à l'effort. La nature des symptômes est majoritairement physique, mais ils peuvent devenir psychologiques.[^4] Le SPC se manifeste différemment chez chaque patient et est souvent une association de différents troubles comme des troubles de l'attention, de la concentration, une difficulté à marcher, etc. On retrouve aussi l'hyperacousie, mais aussi l'anxiété, la fatigue, et même la dépression.[^5] Des maux de tête et des pertes d'équilibre peuvent survenir après la blessure et peuvent durer très longtemps.
+
+Les tests actuels nécessitent d'aller consulter un spécialiste et ne sont efficaces que si les symptômes sont présents au cours de l’examen. Différents tests existent pour pouvoir conclure à un SPC, comme le fait de faire marcher un patient le long d'un large cercle. Un patient ayant des difficultés à marcher ou d'autres troubles liés au SPC aura du mal à suivre parfaitement la courbe. De surcroît, dans certains cas de SPC, leur signal cardiaque est plus instable qu'un patient non-atteint. On ne peut déclarer qu'un patient est atteint d'un SPC que lorsque trois tests ou plus sont positifs.[^6]
+
+En bref, la majorité des tests actuels nécessitent d'enregistrer des informations accélérométriques, gyroscopiques ou encore cardiaques. Mais les patients doivent encore se déplacer en hôpital ou en clinique, ce qui est un problème étant donné que les symptômes peuvent n'être qu'occasionnels.
+
+Mon stage consiste donc à créer un dispositif que les patients pourraient porter à domicile pour collecter continuellement des données accélérométriques, gyroscopiques et cardiaques. Ainsi, ce facteur aléatoire lors des consultations est supprimé. Le patient n'aura plus qu'à donner l'heure à laquelle il a ressenti les symptômes, et le médecin pourra extraire les données récoltées à ce moment. De plus, il devra aussi être possible au médecin de voir en temps réel les données accélérométriques et gyroscopiques.
+
+Une seconde partie de mon stage consiste à développer une solution pour afficher le signal cardiaque d'un patient immobile et en extraire les pics P, Q, R, S et T, qui peuvent être utilisés lors d'une consultation avec un médecin comme test de dépistage du SPC.
+
+Mes travaux seront ensuite remis à deux groupes de chercheurs, l'un étant spécialisé dans l'exploitation des données accélérométriques et gyroscopiques lors des tests de SPC, l'autre dans l'exploitation des données cardiaques lors des tests de SPC.
+
+[^1]: https://www.cdc.gov/mmwr/volumes/66/ss/ss6609a1.htm
+[^2]: http://campus.neurochirurgie.fr/IMG/pdf/Epidemiologie_des_traumatismes_craniens.pdf
+[^3]: https://journals.lww.com/headtraumarehab/pages/articleviewer.aspx?year=2006&issue=09000&article=00001&type=abstract
+[^4]: https://pn.bmj.com/content/6/6/342 
+[^5]: https://www.tandfonline.com/doi/abs/10.1080/09540260310001606692 
+[^6]: https://emedicine.medscape.com/article/828904-overview
+
+ # Mes activités pendant mon stage
+
+## Détail des objectifs et du cahier des charges
+
+Mon stage se décompose en plusieurs objectifs. Initialement, les objectifs étaient les suivants.
+
+### Objectifs initiaux
+
+1. Récupérer des données des accéléromètres / gyroscopes de 3 cartes Micro:bit en  parallèle afin de les envoyer à un serveur local (PC ou Raspberry Pi) via Bluetooth Low Energy (BLE). Le serveur doit ensuite traiter les données afin de les  formater en JSON pour finalement les envoyer vers un serveur MQTT (via le protocole MQTT). Le serveur doit pouvoir gérer à tout moment des  connexions / déconnexions d'une ou plusieurs Micro:bits sans impacter les autres Micro:bits. Un GUI doit être créé pour visualiser les données en temps réel.
+
+2. Récupérer un signal cardiaque en utilisant un AD8232 et une carte basée sur un ATMega. Ce signal cardiaque doit ensuite être envoyé à un ordinateur (Raspberry Pi) afin d'exploiter ce signal (traitement du signal) et en déduire les valeurs suivantes :
+
+* les timestamps des différents pics
+
+* les types de pics
+
+* l'intervale RR
+
+* la Variabilité de Fréquence Cardiaque (VFC)
+
+* les Battements Par Minute (BPM)
+
+  Ces informations devront ensuite être envoyées périodiquement (~ toutes les 100 secondes) à un serveur MQTT.
+
+### Objectifs finals
+
+Le second objectif a été modifié plus tard dans le projet. La VFC n'est plus à calculer, et les informations ne sont plus à envoyer, mais uniquement à afficher et à sauvegarder localement.
+
+En effet, je me suis aperçu que le capteur ne permet pas de récupérer le signal cardiaque quand la personne est en mouvement, le test devra donc se faire directement dans un cabinet médical. Cela n'a donc plus de sens d'envoyer les données vers un serveur distant alors que le médecin ayant besoin des informations est avec le patient.
+
+Les objectifs finals sont donc :
+
+1. Récupérer des données des accéléromètres / gyroscopes de 3 cartes Micro:bit en  parallèle afin de les envoyer à un serveur local (PC ou Raspberry Pi) via Bluetooth Low Energy (BLE). Le serveur doit ensuite traiter les données afin de les  formater en JSON pour finalement les envoyer vers un serveur MQTT (via le protocole MQTT). Le serveur doit pouvoir gérer à tout moment des  connexions / déconnexions d'une ou plusieurs Micro:bits sans impacter les autres Micro:bits. Un GUI doit être créé pour visualiser les données en temps réel.
+
+2. Récupérer un signal cardiaque en utilisant un AD8232 et une carte basée sur un ATMega. Ce signal cardiaque doit ensuite être envoyé à un ordinateur (Raspberry Pi) afin d'exploiter ce signal (traitement du signal) et en déduire les valeurs suivantes en les affichant sur un GUI :
+
+- les timestamps des différents pics
+- les types de pics
+- l'intervale RR
+- les BPM
+
+## Prise en main du matériel
+
+Lors de mon arrivée, mon tuteur mon tuteur m'a transmis mon matériel. Mes premiers jours ont été centrés sur la prise en main de ce matériel. J'avais à ma disposition cinq Micro:bit, deux Raspberry Pi 3+, trois Arduino UNO, un capteur Polar H10 et un capteur AD8232. 
+
+J'ai décidé de travailler sous Debian (Linux) pour ce projet pour trois raisons. Premièrement, beaucoup de projets et de langages sont aujourd'hui adaptés premièrement pour Linux. Ensuite, Linux est très utilisé dans le monde de l'informatique. Il me semblait donc nécessaire de m'améliorer sur ce système d'exploitation (Operating System, OS). Finalement, la Raspberry Pi que j'ai utilisé dans ce projet embarquait Raspbian, un OS basé sur Debian. 
+
+### Micro:bit
+
+Les Micro:bit sont des cartes électroniques open-source basées sur une architecture ARM. Elles ont  été conçues par la branche éducative de la BBC ainsi que par de nombreux collaborateurs tels que NXP Semiconductors, Samsung ou encore Microsoft. Elle est dévoilée le 12 Mars 2015 et a pour but initial d'être utilisée dans le système éducatif anglo-saxon.
+
+Elles embarquent un processeur ARM Cortex-M0, ainsi que des accéléromètres, des gyroscopes, différents capteurs, des boutons et d'une matrice de 5x5 LED. De plus, elles sont dotées d'une connectique Bluetooth Low Energy (BLE) et USB. Elles peuvent être alimentées par USB ou par une batterie externe.
+
+Il est possible de programmer les Micro:bits en Javascript, en Python, en C/C++, en Rush, en Forth, en Pascal et en Ada. J'ai choisi d'utiliser le C/C++ car il permet d'utiliser une librairie (Data Access Layer - DAL) développée par l'Université de Lancaster. Cette librairie est très documentée et très utilisée... notamment par les bibliothèques permettant de développer en Python et en Javascript sur les Micro:bit.
+
+Yotta est utilisé pour le build, ce qui génère un fichier .hex qu'il suffit de transférer sur le Micro:bit pour exécuter notre programme. Chose assez courante dans l'écosystème MBED.
+
+Leur prix est abordable (environ $17), de plus l'UNLV est habituée à les utiliser, ce qui en fait une carte parfaite pour ce projet. Ils vont servir de capteurs accéléromètres et gyroscopiques et transmettront les données à la Raspberry Pi via BLE.
+
+### Raspberry Pi 3+
+
+La Raspberry Pi est un mini-ordinateur très connu en informatique, en électronique et en robotique. Elle aussi a été développée en Angleterre, par la Raspberry Pi Foundation, pour promouvoir l'apprentissage de l'informatique.
+
+La Raspberry Pi 3+ embarque, entre autres, un processeur quad core 64 bits, une connectique Wifi et une connectique Bluetooth Low Energy (BLE). Une carte MicroSD fait office de disque dur. Elle s'alimente en 5V via MicroUSB ou avec une batterie externe.
+
+J'ai choisi d'y installer Raspbian, un système d'exploitation basé sur Debian, fait spécifiquement pour la Raspberry Pi. Le prix d'une Raspberry Pi était de $35 à sa sortie, en 2012 (en version 1, la version 3+ que j'utilise est sortie en 2016 et coûte environ le même prix).
+
+La Raspberry sera le centre de notre intelligence, c'est là que seront fait la majorité des calculs et des traitements.
+
+### Arduino UNO
+
+L'Arduino UNO est un microcontrôleur open-source développé par l'entreprise Arduino et basé sur un microprocesseur ATMega328P. La carte est équipée de différents GPIO digitaux et des entrées/sorties analogues. Il peut être programmé via USB, et peut être alimenté soit en USB, soit avec une batterie externe. Il servira d'interface entre le capteur AD8232 et la Raspberry Pi.
+
+Il coûte entre \$5 et $10, selon le fabricant.
+
+### AD8232
+
+Le capteur AD8232 est utilisé pour acquérir le signal cardiaque. Il utilise 3 électrodes placées à différents endroits du corps. La tension dans les électrodes étant de l'ordre du mV, le AD8232 intègre des amplificateurs opérationnels (AOP) pour remonter cette tension dans des ordres de grandeur mesurables par l'Arduino. Ainsi, il est conçu pour amplifier et filtrer le bruit.
+
+Il est produit par SparkFun et est alimenté en 3V3. Il sera donc directement branché sur l'Arduino, qui peut fournir du 3V3.
+
+C'est l'un des capteurs les moins chers du marché (environ $20), mais cela se ressent rapidement. Effectivement, dès que le patient bouge, le signal devient inexploitable.
+
+### Polar H10
+
+Le capteur Polar H10 est un capteur de BPM. Il est conçu pour s'intégrer facilement avec tout autre dispositif IoT (Internet of Things) de la marque Polar (montre connectée, application Android). Les données sont envoyées via BLE, ce qui va me permettre de les exploiter directement avec la Raspberry Pi.
+
+Le capteur coûte environ $90, mais est réputé pour sa précision et sa robustesse. 
+
+### Schémas de fonctionnement
+
+Pour résumer, j'ai donc décidé de créer deux systèmes indépendants afin de répondre aux deux objectifs. Dans ce rapport, j'aborderai premièrement le premier système (Diagramme #1) dédié au premier objectif, puis ensuite j'aborderai le second (Diagramme #2). Cependant, durant mon stage, j'ai travaillé sur les deux objectifs en parallèle.
+
+#### Diagramme #1
+
+```mermaid
+graph LR
+A(Micro:bit #1) --> E(Raspberry Pi)
+B(Micro:bit #2) --> E
+C(Micro:bit #3) --> E
+D(Polar) --> E
+```
+
+#### Diagramme #2
+
+```mermaid
+graph LR
+A(AD8232) --> B(Arduino UNO)
+B --> C(Raspberry Pi)
+```
+
+## Utilisation du MQTT-SN
+
+Lors de ma première réunion, mon tuteur m'a expliqué ce qu'il attendait de moi sur le projet. Pour cela, il m'a renvoyé vers un article de Benjamin Cabe, un développeur spécialisé dans l'IoT. Dans cet article, Benjamin Cabe explique comment il a pu envoyer les données accélérométriques et gyroscopiques  des plusieurs Micro:bit vers un serveur distant, grâce au MQTT-SN, au BLE et au MQTT. 
+
+L'ensemble des sources de son projet est en open-source et est disponible sur [son GitHub](https://github.com/kartben). J'ai donc premièrement tenté de le faire fonctionner. J'ai dû installer les outils tels que Yotta et CMake afin de pouvoir compiler le programme. Puis j'ai installé Node.js, la partie du transfert MQTT-SN vers MQTT étant géré par un serveur Node.js.
+
+Rapidement, Node.js est un environnement bas niveau permettant d'exécuter du code JavaScript côté serveur. Il est souvent utilisé comme serveur web. Son fonctionnement est basé sur une programmation événementielle, ce qui lui permet d'être très rapide par rapport aux langages plus lourds comme le PHP. La popularité de ce langage est au plus haut, et de plus en plus d'entreprises passent à Node.js, comme Paypal, Microsoft, Walmart ou encore LinkedIn. 
+
+Sur Debian, Node.js ne peut être installé avec un simple apt ou apt-get. En effet, les dépôts traditionnels ne fournissent pas les bonnes versions. J'ai alors dû ajouter les dépôts de Nodesource, l'entreprise chargée de la distribution de Node.js sur Debian notamment. Pour cela, il suffit d'exécuter un script bash qui ajoute la clé publique GPG de Nodesource, puis ajoute leur dépôt dans la liste des dépôts apt. 
+
+```shell
+curl -sL https://deb.nodesource.com/setup_8.x | bash -
+sudo apt-get install -y nodejs
+sudo apt-get install -y build-essential
+```
+
+Ceci étant fait, je me suis ensuite plongé dans le code source afin d'en comprendre le fonctionnement. Je commence par m'intéresser au fonctionnement global, notamment aux interactions entre les différents composants, entre les différents programmes.
+
+Pour commencer, les trois Micro:bit transmettaient les informations grâce au protocole MQTT-SN via BLE UART. Afin de bien comprendre ce qu'est le MQTT-SN, j'ai d'abord dû me renseigner sur le MQTT.
+
+Le protocole MQTT (Message Queuing Telemetry Transport) est un protocole de messagerie de type publish-subscribe basé sur le protocole TCP/IP. Le principe d'un système de messagerie de type publish-subscribe est le suivant : les messages sont classés par catégories (ou topics) et les destinataires peuvent s'abonner aux différentes catégories, et être ainsi avertis à chaque nouveau message publié les concernant. Le protocole a vu le jour en 1999, et est aujourd'hui défini par un standard ISO (ISO/IEC 20922). 
+
+Des serveurs MQTT sont utilisés dans énormément d'applications nécessitant un court délai, comme les services de chat. Ainsi, Facebook révélait en 2015 que son application de chat Facebook Messenger utilise un broker MQTT (un serveur MQTT est plus communément appelé un *broker*).
+
+Avec l'arrivée de l'IoT, il fallait créer un protocole de publish-subscribe ne se basant pas sur le protocole TCP/IP. En effet, la couche TCP/IP peut être lourde et non-adaptée pour de simples objets de l'IoT. C'est ainsi qu'est né en 2007 le MQTT-SN (MQTT Sensor Network). C'est une adaptation du MQTT à d'autres protocoles que le TCP/IP, tels que l'UDP ou le BLE UART (émulation d'une liaison série via Bluetooth Low Energy). 
+
+J'avais maintenant toutes les clés en main pour comprendre le fonctionnement du projet de Benjamin Cabe. Les Micro:bits transmettent donc les données en utilisant le protocole MQTT-SN via BLE UART. Cependant, la destination finale est un broker MQTT, et non MQTT-SN. Il faut donc encore d'autres étapes avant d'arriver au broker final.
+
+Un des logiciels utilisés pour faire cette conversion est [Mosquitto.RSMB](https://github.com/eclipse/mosquitto.rsmb) (Eclipse Foundation). RSMB prend en entrée des paquets MQTT-SN via UDP puis les envoie vers un broker MQTT via TCP/IP. Problème : nos paquets MQTT-SN arrivent via BLE UART, et non via UDP. Benjamin Cabe a donc dû adapter un [serveur Node.js](https://github.com/kartben/ble-uart-to-udp) s'occupant de cette tâche.
+
+Pour résumer, j'avais donc ce schéma en tête.
+
+```mermaid
+graph TB
+A(Micro:bit #1<br /><br />C++) -->|MQTT-SN via BLE UART| D(Bridge BLE-UART vers MQTT-SN via UDP<br /><br />Node.js)
+B(Micro:bit #2<br /><br />C++) -->|MQTT-SN via BLE UART| D(Bridge BLE-UART vers MQTT-SN via UDP<br /><br />Node.js)
+C(Micro:bit #3<br /><br />C++) -->|MQTT-SN via BLE UART| D(Bridge BLE-UART vers MQTT-SN via UDP<br /><br />Node.js)
+D -->|MQTT-SN via UDP| E("MQTT-SN Gateway (MQTT-SN vers MQTT)<br /><br />Mosquitto.RSMB")
+E -->|MQTT via TCP/IP| F(Serveur MQTT<br /><br />iot.eclipse.org)
+```
+
+J'avais à présent compris le fonctionnement global. Je me suis ensuite intéressé en détail au [programme embarqué](https://github.com/kartben/microbit-mqttsn-ble) sur les Micro:bit.
+
+Le programme utilise Yotta, un gestionnaire de module. Tout module ou application Yotta inclus un fichier `module.json` qui renseigne, entre autres, l'ensemble des modules dont le programme est dépendant. Yotta se chargera seul de l'installation des modules (avec la commande `yotta install <nomDuModule>`) et de leur inclusion dans le code final lors du build (avec la commande `yotta build`). Le fonctionnement est similaire à d'autres gestionnaires de modules plus connus comme npm pour Node.js, ou pip pour Python. 
+
+Je vois dans le fichier `module.json` que le programme dépend du DAL créé par la Lancaster University dont j'ai parlé dans la section 2.2.1 du document. Ce n'est pas vraiment une surprise, en effet, c'est une des bibliothèques les plus utilisées dans le domaine. 
+
+```json
+{
+  "name": "microbit-mqttsn-ble",
+  ...
+  "dependencies": {
+    "microbit": "lancaster-university/microbit"
+  },
+  ...
+}
+```
+
+Passons maintenant au code en lui-même. Il utilise la librairie [Eclipse Paho MQTT-SN](https://www.eclipse.org/paho/), qui n'est pas déclarée dans le fichier `module.json` car non disponible sur Yotta. Les fichiers sources de la librairie sont donc directement présents dans les dossiers du programme.
+
+Comme prévu, le programme utilise le service BLE UART. Grâce à la DAL de la Lancaster University, la syntaxe est très lisible. 
+
+```C++
+uart = new MicroBitUARTService(*uBit.ble, 128, 128);
+```
+
+Lors de la conception d'une Micro:bit, un shortname (un identifiant unique de 5 lettres, $5^{26} = 1.49*10^{18}$ possibilités) lui est attribué. C'est ce shortname qui est utilisé comme topic MQTT pour les messages envoyés. Il est accessible avec la fonction `microbit_friendly_name()`. 
+
+C'est la phase de connexion qui prend le plus de lignes de code, notamment à cause de la gestion des erreurs. Le succès consiste en ce diagramme de séquence, l'échec en tout autre diagramme. En cas d'échec, le diagramme de séquence est repris du début.
+
+```mermaid
+sequenceDiagram
+participant M as Micro:bit
+participant S as Serveur Node.js
+
+activate M
+M ->>+ S : Paquet CONNECT
+S -->>- M : Paquet CONNACK
+
+M ->>+ S : Paquet REGISIER 
+S -->>- M : Paquet REGACK
+deactivate M
+```
+
+Le paquet `REGISTER` contient le nom du topic vers lequel seront envoyé les messages publiés par la Micro:bit. Ici, le shortname.
+
+Il ne manque maintenant plus qu'à gérer l'envoi des messages. C'est la fonction `publish(payload)` qui s'en occupe.
+
+```c++
+void publish(char * payload) {
+    // Si la connexion est perdue
+    if (mqttConnected == 0) {
+        // On tente de se reconnecter
+        int rc = mqtt_connect();
+        
+        // Si la reconnexion échoue, on abandonne l'envoi
+        if (rc != 0) 
+            return;
+    } else {
+        // Si la connexion est active
+        
+        // On définit le type de topic et l'ID du topic (le shortname)
+        topic.type = MQTTSN_TOPIC_TYPE_NORMAL;
+        topic.data.id = topicid;
+
+        // On utilise la libraire Eclipse Paho pour publier le message
+        len = MQTTSNSerialize_publish(buf, buflen, dup, qos, retained, packetid,
+                topic, (unsigned char *) payload, strlen(payload));
+        rc = transport_sendPacketBuffer(buf, len);
+        
+        // On fait défiler un point sur la matrice de LED pour signifier que le message est en cours d'envoi
+        uBit.display.scrollAsync(ManagedString("."),10); 
+    }
+}
+```
+
+Mon explication du code est dans les commentaires (`// Commentaire`).
+
+## Fonctionnement et limitation du BLE, travail bas-niveau
+
+## Envoi vers un serveur MQTT et sauvegarde sur une base de données
+
+## Acquisition des BPM avec un Polar Device
+
+## GUI
+
+## Acquisition du signal cardiaque
+
+## Calcul des pics, du signal RR et des BPM
+
+## Affichage du signal
+
+## Sauvegarde du signal
+
+## Réalisation finale et tests
+
+# Rapport personnel
+
+# Conclusion
+
+
 
