@@ -60,9 +60,9 @@
 - Ajout d'une fonctionnalité d'export des pics vers un fichier CSV
 - Développement d'un programme Python d'acquisition du nombre de Battements Par Minute (BPM)  en utilisant un capteur Polar
 - Développement d'un GUI Javascript / HTML / CSS afin d'afficher les informations accélérométriques, gyroscopiques et cardiaque (capteur Polar) récupérées sur le serveur MQTT
-- Écriture d'un document expliquant comment utiliser mes programmes 
+- Écriture d'un document expliquant comment utiliser mes programmes
 
-**Contraintes et difficultés rencontrées** : Le traitement des informations en temps réel à été une difficulté pour le développement des programmes. Le fonctionnement mission par mission a parfois été compliqué. En effet, au début de mon stage, mon tuteur me donnait une tâche à la fois, et une réunion était nécessaire pour avoir une nouvelle tâche. Cela a engendré une perte de temps au début du stage.
+**Contraintes et difficultés rencontrées** : Le traitement des informations en temps réel à été une difficulté pour le développement des programmes. Le fonctionnement mission par mission a parfois été compliqué. En effet, au début de mon stage, mon tuteur me donnait une tâche à la fois, et une réunion était nécessaire pour avoir une nouvelle tâche. Cela a engendré une perte de temps au début du stage. De plus, j'ai été confronté à un problème que j'ai mal analysé dans le fonctionnement du BLE. Cela m'a causé quelques désagréments. J'y reviens en détail au sein de ce rapport.
 
 **Résultats** : Le système d'acquisition, de transmission et de stockage d'informations accélérométriques, gyroscopiques et cardiaques (BPM) a été testé pendant 8h consécutives sans problème. Le système d'acquisition du rythme cardiaque sur un patient immobile et de traitement des pics P, Q, R, S et T a été testé 10 fois pendant 20 min consécutives sans problème.
 
@@ -266,7 +266,7 @@ A(AD8232) --> B(Arduino UNO)
 B --> C(Raspberry Pi)
 ```
 
-## Utilisation du MQTT-SN
+## Le début du projet : l'utilisation du MQTT-SN
 
 Lors de ma première réunion, mon tuteur m'a expliqué ce qu'il attendait de moi sur le projet. Pour cela, il m'a renvoyé vers un article de Benjamin Cabe, un développeur spécialisé dans l'IoT. Dans cet article, Benjamin Cabe explique comment il a pu envoyer les données accélérométriques et gyroscopiques  des plusieurs Micro:bit vers un serveur distant, grâce au MQTT-SN, au BLE et au MQTT. 
 
@@ -382,13 +382,217 @@ void publish(char * payload) {
 }
 ```
 
-Mon explication du code est dans les commentaires (`// Commentaire`).
+Mon explication du code est dans les commentaires (`// Commentaire`). 
 
-## Fonctionnement et limitation du BLE, travail bas-niveau
+Je me suis ensuite penché sur le serveur Node.js. Rien de bien compliqué dans cette partie. Le script utilise le paquet [noble](https://www.npmjs.com/package/noble) pour la gestion du BLE, et le paquet [mqttsn-packet](https://www.npmjs.com/package/mqttsn-packet) pour paqueter, dépaqueter et transmettre les données MQTT-SN. Les deux sont disponibles via le gestionnaire de paquets npm. 
+
+Le fonctionnement du code est le suivant (les flèches avec des croix représentent des messages asynchrones) :
+
+```mermaid
+sequenceDiagram
+
+participant M as Micro:bit
+participant S as Serveur Node.js
+participant R as Mosquitto.RSMB
+
+activate M
+activate S
+activate R
+
+S ->> M : Connexion BLE
+M -->> S : Connexion BLE OK
+deactivate S
+M ->>+ S : Connexion MQTT
+S -->>- M : Connexion MQTT OK
+
+loop À chaque message
+	M -x+ S : Publication via BLE
+	S ->> S : Dépaquetage du message MQTT-SN BLE
+	S ->> S : Paquetage du message MQTT-SN UDP
+	S -x- R : Publication via UDP
+end
+
+deactivate M
+deactivate R
+```
+
+Le serveur Node.js n'est ni plus ni moins qu'un relai entre le réseau BLE et le réseau UDP.
+
+Il ne me restait plus qu'à regarder comment faire marcher Mosquitto.RSMB. La configuration est assez simple pour l'utilisation que je veux en faire. 
+
+Je veux que RSMB écoute les paquets MQTT-SN UDP (port 1884) puis les envoie vers un un broker MQTT. J'utiliserai le broker MQTT fourni par Eclipse. Il est accessible à l'adresse iot.eclipse.org via le port 1883. Il est possible de s'y connecter avec les WebSockets, mais j'y reviendrais dans la dernière partie de cet objectif, sur le GUI.
+
+Je crée donc un fichier `config.cfg` que je passe en argument lors du lancement du broker.
+
+```bash
+./rsmb_broker config.cfg
+```
+
+Ce fichier contient ceci :
+
+```
+# Active l'affichage des paquets, utile pour le debug
+trace_output protocol
+
+# Décalration du client MQTT
+listener 1883 INADDR_ANY mqtt
+
+# Déclaration du client MQTT-SN
+listener 1884 INADDR_ANY mqttsn
+
+# Brdige MQTT-SN MQTT (sortie uniquement)
+connection mqttsn
+  protocol mqtt
+  address iot.eclipse.org:1883
+  topic # out
+```
+
+L'explication est dans les commentaires (`# Commentaires`).
+
+Après avoir compris l'ensemble du projet de Benjamin Cabe, je l'ai lancé. Sans surprise, cela marchait. Cependant après quelques minutes d'utilisation, les Micro:bit se déconnectaient. J'ai pu voir, après l'ajout de l'affichage des paquets (voir `config.cfg`) que le serveur Node.js recevait parfois des paquets mal formatés, générant des erreurs au sein du serveur Node.js et finissant par le faire crasher. J'avais identifié où se situait le problème mais je n'avais pas encore trouvé la cause de ces paquets mal formatés. 
+
+À l'heure où j'écris ce rapport, je sais maintenant quel était la cause de ce problème, car je l'ai re-rencontré plus tard dans mon stage. Il est lié au fonctionnement même du BLE, j'y reviendrai plus en profondeur dans la partie 2.4. 
+
+Sur le moment, j'ai pensé que remplacer le serveur Node.js par un serveur Python de ma création pourrait permettre de résoudre le problème. Je me sens plus à l'aise avec le Python qu'avec Node.js. En effet, j'ai commencé à l'ESEO le Python en P1 (il y a plus de 3 ans) et je l'utilise depuis dans la majorité de mes projets, au sein de l'école ou non.
+
+J'ai donc élaboré un serveur Python ayant exactement le même rôle que le serveur Node.js. J'ai utilisé le paquet [mqttsn](https://pypi.org/project/mqttsn/) (disponible sur le gestionnaire de paquets pip) en remplacement de mqttsn-paquet (npm) et [bluepy](https://github.com/IanHarvey/bluepy) pour le Bluetooth (en remplacement de noble). 
+
+Mais, le problème n'était pas résolu, et le serveur Python recevait là encore des paquets mal formatés. Malheureusement, sur le coup j'ai mal analysé le problème. Si mon serveur Python recevait des paquets mal formatés, j'aurai dû me dire que le problème était en amont. 
+
+La solution que j'ai choisi d'adopter à tout de même résolu le problème, mais uniquement temporairement. En me re-penchant sur le fonctionnement global du projet, j'ai remarqué quelques incohérences. Les données étaient envoyées en MQTT-SN via BLE, pour ensuite passer par du MQTT-SN via UDP, puis du MQTT via TCP/IP. Des parties du projet étaient selon moi, en trop, des transformations étaient inutiles.
+
+Après avoir cherché comment résoudre ce problème, j'ai pris la liberté de proposer la solution suivante à mon tuteur.
+
+```mermaid
+graph TB
+
+A(Micro:bit #1<br /><br />C++) -->|BLE UART| D(Bridge BLE-UART vers MQTT<br /><br />Python)
+B(Micro:bit #2<br /><br />C++) -->|BLE UART| D
+C(Micro:bit #3<br /><br />C++) -->|BLE UART| D
+D -->|MQTT via TCP/IP| E(Serveur MQTT<br /><br />iot.eclipse.org)
+```
+
+J'ai supprimé l'utilisation du MQTT-SN pour privilégier une transmission série directe, puis j'ai présenté la solution lors d'une réunion avec mon tuteur, qui l'a acceptée. 
+
+## Du MQTT-SN via BLE UART vers le BLE UART uniquement
+
+Il me fallait à présent trouver une solution pour pouvoir dialoguer avec le broker MQTT depuis Python. Eclipse Paho fournit un paquet qui fait exactement cela : [paho-mqtt](https://pypi.org/project/paho-mqtt/) (disponible sur pip).
+
+Détaillons un cas d'utilisation du programme. 
+
+Le script Python commence par importer les différentes bibliothèques nécessaires.
+
+```python
+from bluepy.btle import Scanner, DefaultDelegate, Peripheral
+import atexit
+import paho.mqtt.client as MQTT
+import re
+```
+
+La librairie `atexit` permet d'exécuter une fonction à l'arrêt du script, ce qui est utile pour fermer proprement la connexion BLE entre les Micro:bits, l'ordinateur exécutant ce script et le serveur MQTT.
+
+La libraire `re` (pour Regular Expressions) permet de manipuler les expressions régulières, aussi appelées les Regex. Une regex est une chaîne de caractères définissant un modèle de chaîne de caractères. Cela peut paraître très flou et assez compliqué, mais c'est extrêmement puissant pour vérifier qu'une chaîne de caractères correspond à des normes précises. Par exemple, pour vérifier qu'une chaîne est bien une adresse email, on peut utiliser la regex suivante, basée sur les recommandations de la norme [RFC 5322](https://tools.ietf.org/html/rfc5322#section-3.4).
+
+```regex
+\A[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@
+(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z
+```
+
+Je définis ensuite les constantes `HOST` et `PORT` afin de pouvoir les changer d'un coup en cas de besoin. La variable `peripherals`, quant à elle, est un tableau d'objets de type `Peripheral`, c'est-à-dire de périphériques BLE comme les Micro:bits ou le capteur Polar.
+
+Viens ensuite la classe `Color` que j'utilise afin de mettre plus facilement de la couleur dans la console, ce qui la rend plus lisible et facilite le débug. 
+
+```python
+class Color:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+```
+
+J'aborde à présent le cœur du programme. On commence par lancer un scan des périphériques BLE durant 15 secondes. Pour cela, j'utilise l'objet `Scanner` et j'utilise la méthode d'instance `withDelegate(class)`. Une instance de la classe passée en argument est alors créée, cette classe doit hériter de `DefaultDelegate`. Lors de la découverte d'un périphérique BLE, la méthode `handleDiscovery` est appelée.
+
+```python
+# DEBUG Console
+print Color.OKGREEN + "[SCAN]" + Color.ENDC + " Starting scan..." 
+
+# On crée le Scanner
+scanner = Scanner().withDelegate(ScanDelegate())
+# On lance le scan
+devices = scanner.scan(15.0)
+```
+
+C'est une instance de `ScanDelegate` qui est ici crée.
+
+```python
+class ScanDelegate(DefaultDelegate):
+    
+    # On appelle le constructeur hérité
+    def __init__(self):
+        DefaultDelegate.__init__(self)
+
+    # Lors de la découverte d'un périphérique
+    def handleDiscovery(self, dev, isNewDev, isNewData):
+        # Si c'est un nouveau périphérique
+        if isNewDev:
+            # Si ce périphérique est disponible
+            if (dev.getValueText != None):
+                # Si le nom du périphérique commence par BBC, ce qui est le cas des Micro:bit
+                if (dev.getValueText(9).replace(u"\u2018", "").replace(u"\u2019", "").startswith("BBC")):
+                    connectBLE(dev)
+```
+
+Je filtre ainsi les périphériques BLE pour ne me connecter qu'aux Micro:bit. C'est la fonction `connectBLE` qui s'occupe de la connexion. 
+
+```python
+def connectBLE(dev):
+    ...
+    if (dev.connectable):
+        ...
+        type = dev.addrType
+        p = Peripheral()
+        p.connect(dev.addr, type)
+        ...
+        p.writeCharacteristic(0x0012, b"\x02\x00", False)
+		...
+        ready(dev, p)
+    else:
+        print bcolors.FAIL + "[" + dev.addr + "] Device isn't connectable"
+```
+
+On commence par vérifier qu'il est possible de se connecter au périphérique en vérifiant la valeur l'attribut booléen `connectable`. En effet, dans certains rares cas d'utilisations, il peut être utile d'avoir des périphériques BLE non-connectables. On appelle alors cela des "balises" (ou beacons). C'est notamment utilisé dans les centres commerciaux pour détecter la présence de consommateurs à différents endroits des magasins.
+
+Il faut ensuite savoir si l'adresse MAC est une adresse publique ou random. 
+
+![Différence entre une addresse MAC publique et random](/files/Fichiers/Cours/ESEO/UNLV/Rapport/assets/BLE_LL_AddressTypes-1541655730901.png)
+
+Puis finalement on se connecte avec la fonction `connect` de la classe `Peripheral`.
+
+Pour écrire la suite, j'ai dû me renseigner sur le fonctionnement interne du BLE. Le fonctionnement est assez compliqué à comprendre, mais il est essentiel de le connaître pour pouvoir travailler avec cette technologie.
+
+Dans cette application, les Micro:bit sont des serveurs BLE et l'ordinateur exécutant le script, le client BLE.
+
+Chaque périphérique BLE (client comme serveur) possède des services (Service), des caractéristiques (Characteristic) et des descripteurs (Descriptor). 
+
+Voyons d'abord les caractéristiques. Une caractéristique n'est ni plus ni moins qu'un emplacement mémoire. Cet emplacement mémoire a une adresse (UUID), et contient une donnée, comme les valeurs d'un accéléromètre par exemple. De plus, chaque caractéristique a des droits d'accès comme Read et Write, mais aussi Notify ou Indicate, deux fonctionnalités de notifications qui sont essentielles au bon fonctionnement du BLE, que je détaille un peu plus loin.
+
+Passons maintenant aux descripteurs, qui sont intrinsèquement liés aux caractéristiques. Un descripteur donne la majeure partie du temps des informations supplémentaires sur le type de données contenues dans une caractéristique, comme leur unité par exemple. Ils sont habituellement en lecture seule.
+
+Paradoxalement, les descripteurs les plus importants, les CCCD (Client Characteristic Configuration Descriptor) ne respectent pas cette définition. Ils ne sont pas en lecture seule et ne décrivent pas la caractéristique. Ils servent à activer ou non les notifications : le fait d'écrire une certaine valeur dans le CCCD active les notifications Notify ou Indicate, selon la valeur écrite.
+
+Notify et Indicate sont très semblables. Ce sont des fonctions d'envoi de notifications lors de changements de valeurs. La seule différence est que Indicate nécessite un accusé de réception, tandis que Notify n'en demande pas. Un client peut ainsi demander à d'être notifié via Notify des changements d'une caractéristique en écrivant une valeur spécifique dans le CCCD. 
+
+Les services sont des groupes de caractéristiques qui fonctionnent ensemble. Par exemple, pour un accéléromètre, on va retrouver une caractéristique représentant la valeur de l'accéléromètre et une autre représentant l'intervalle de temps entre deux mesures.
+
+Le service BLE UART est un peu spécial, mais essentiel à ce projet. En effet, il émule une liaison série (TX, RX) utilisant le BLE. C'est par là que transiteront nos données. Lorsque la Micro:bit enverra des données à transmettre (avec la méthode `send` de la classe `MicroBitUARTService`), la donnée sera écrite dans la caractéristique TX du service UART et produira une notification, reçue par le client. À l'inverse, lorsque le client enverra des données, elles seront écrites dans la caractéristique RX du service UART et seront disponibles avec la méthode `readUntil` de la classe `MicroBitUARTService`.
 
 ## Envoi vers un serveur MQTT et sauvegarde sur une base de données
 
-## Acquisition des BPM avec un Polar Device
+##  Acquisition des BPM avec un Polar Device
 
 ## GUI
 
