@@ -108,6 +108,8 @@ Cependant, la situation démographique de Las Vegas est complexe. En effet, l'ag
 
 En prenant en compte ces différentes zones, la population de ce que l'on appelle à tord "Las Vegas" approche les 2 000 000 d'habitants. Dans ce document, sauf mention contraire, c'est cette zone que l'on appellera "Las Vegas".
 
+==TODO : CARTE DIFFERENCES==
+
 La ville est située dans une vallée et est entourée de montagnes. Différents parcs d'état ou nationaux sont limitrophes : *Red Rock Canyon National Park*, *Valley of Fire State Park*, *Lake Mead National Recreation Area* et *Sloan Canyon National Conservation Area*. Le climat y est évidemment désertique, ce qui est un problème majeur pour l'approvisionnement en eau. La croissance démographie entraîne des besoins de plus en plus importants, que le lac Mead (lac artificiel de 32 000 km<sup>3</sup>, 885 km de rivage, créé par le barrage Hoover) a de plus en plus de mal à satisfaire. La municipalité prend des mesures drastiques contre le gaspillage de l'eau, au point que des amendes pouvant aller jusqu'à $5 000 ont été instaurées si des fuites d'eau étaient trouvées chez un particulier. La Southern Nevada Water Authority (SNWA) envisage de construire un aqueduc pour aller chercher l'eau nécessaire à la ville à 500 km au nord de Las Vegas.
 
 La ville de Las Vegas est composée de différents quartiers, mais deux d'entre eux sont atypiques et très dépaysants : Downtown et le Strip.
@@ -183,7 +185,7 @@ Mon stage se décompose en plusieurs objectifs. Initialement, les objectifs éta
 
 Le second objectif a été modifié plus tard dans le projet. La VFC n'est plus à calculer, et les informations ne sont plus à envoyer, mais uniquement à afficher et à sauvegarder localement.
 
-En effet, je me suis aperçu que le capteur ne permet pas de récupérer le signal cardiaque quand la personne est en mouvement, le test devra donc se faire directement dans un cabinet médical. Cela n'a donc plus de sens d'envoyer les données vers un serveur distant alors que le médecin ayant besoin des informations est avec le patient.
+En effet, je me suis aperçu que le capteur ne permet pas de récupérer le signal cardiaque quand la personne est en mouvement, le test devra donc se faire directement dans un cabinet médical. Cela n'a alors plus de sens d'envoyer les données vers un serveur distant alors que le médecin ayant besoin des informations est avec le patient.
 
 Les objectifs finals sont donc :
 
@@ -296,7 +298,7 @@ J'avais maintenant toutes les clés en main pour comprendre le fonctionnement du
 
 Un des logiciels utilisés pour faire cette conversion est [Mosquitto.RSMB](https://github.com/eclipse/mosquitto.rsmb) (Eclipse Foundation). RSMB prend en entrée des paquets MQTT-SN via UDP puis les envoie vers un broker MQTT via TCP/IP. Problème : nos paquets MQTT-SN arrivent via BLE UART, et non via UDP. Benjamin Cabe a donc dû adapter un [serveur Node.js](https://github.com/kartben/ble-uart-to-udp) s'occupant de cette tâche.
 
-Pour résumer, j'avais donc ce schéma en tête.
+Pour résumer, j'avais ce schéma en tête.
 
 ```mermaid
 graph TB
@@ -474,6 +476,14 @@ D -->|MQTT via TCP/IP| E(Serveur MQTT<br /><br />iot.eclipse.org)
 
 J'ai supprimé l'utilisation du MQTT-SN pour privilégier une transmission série directe, puis j'ai présenté la solution lors d'une réunion avec mon tuteur, qui l'a acceptée. 
 
+Les envois de données sur la Micro:bit se font maintenant en BLE UART directement.
+
+```c++
+int xA = uBit.accelerometer.getX();
+sprintf((char*) payload, "xA%d", xA);
+uart->send(payload);
+```
+
 ## Du MQTT-SN via BLE UART vers le BLE UART uniquement
 
 Il me fallait à présent trouver une solution pour pouvoir dialoguer avec le broker MQTT depuis Python. Eclipse Paho fournit un paquet qui fait exactement cela : [paho-mqtt](https://pypi.org/project/paho-mqtt/) (disponible sur pip).
@@ -578,7 +588,7 @@ Dans cette application, les Micro:bit sont des serveurs BLE et l'ordinateur exé
 
 Chaque périphérique BLE (client comme serveur) possède des services (Service), des caractéristiques (Characteristic) et des descripteurs (Descriptor). 
 
-Voyons d'abord les caractéristiques. Une caractéristique n'est ni plus ni moins qu'un emplacement mémoire. Cet emplacement mémoire a une adresse (UUID), et contient une donnée, comme les valeurs d'un accéléromètre par exemple. De plus, chaque caractéristique a des droits d'accès comme Read et Write, mais aussi Notify ou Indicate, deux fonctionnalités de notifications qui sont essentielles au bon fonctionnement du BLE, que je détaille un peu plus loin.
+Voyons d'abord les caractéristiques. Une caractéristique n'est ni plus ni moins qu'un emplacement mémoire. Cet emplacement mémoire a une adresse, et contient une donnée, comme les valeurs d'un accéléromètre par exemple. De plus, chaque caractéristique a des droits d'accès comme Read et Write, mais aussi Notify ou Indicate, deux fonctionnalités de notifications qui sont essentielles au bon fonctionnement du BLE, que je détaille un peu plus loin.
 
 Passons maintenant aux descripteurs, qui sont intrinsèquement liés aux caractéristiques. Un descripteur donne la majeure partie du temps des informations supplémentaires sur le type de données contenues dans une caractéristique, comme leur unité par exemple. Ils sont habituellement en lecture seule.
 
@@ -589,6 +599,217 @@ Notify et Indicate sont très semblables. Ce sont des fonctions d'envoi de notif
 Les services sont des groupes de caractéristiques qui fonctionnent ensemble. Par exemple, pour un accéléromètre, on va retrouver une caractéristique représentant la valeur de l'accéléromètre et une autre représentant l'intervalle de temps entre deux mesures.
 
 Le service BLE UART est un peu spécial, mais essentiel à ce projet. En effet, il émule une liaison série (TX, RX) utilisant le BLE. C'est par là que transiteront nos données. Lorsque la Micro:bit enverra des données à transmettre (avec la méthode `send` de la classe `MicroBitUARTService`), la donnée sera écrite dans la caractéristique TX du service UART et produira une notification, reçue par le client. À l'inverse, lorsque le client enverra des données, elles seront écrites dans la caractéristique RX du service UART et seront disponibles avec la méthode `readUntil` de la classe `MicroBitUARTService`.
+
+Les constructeurs fournissent un profil Bluetooth référençant la liste des services, des caractéristiques et des descripteurs présents sur leurs périphériques. [Celui de la Micro:bit](https://lancaster-university.github.io/microbit-docs/resources/bluetooth/bluetooth_profile.html) est disponible sur le site de la Lancaster University. Pour faire fonctionner le BLE UART je devais trouver comment activer les notifications pour ce service. La fonction qui écrit dans une caractéristique est `writeCharacteristic(handle, val, ...)` du paquet bluepy. Elle prend en argument, entre autres, le GATT handle (un identifiant unique de la caractéristique) et la valeur à écrire. 
+
+Pour trouver ce handle, il faut utiliser l'outil en ligne de commande gatttool car il n'est pas inscrit dans la documentation du constructeur... J'aurai besoin des UUID des caractéristiques lors de la recherche du handle. Ces UUID sont eux dans la documentation.
+
+> UART Service :
+>
+> ​	UUID 6E40000**1**B5A3F393E0A9E50E24DCCA9E
+>
+> TX Characteristic : 
+>
+> ​	UUID 6E40000**2**B5A3F393E0A9E50E24DCCA9E
+>
+> RX Characteristic :
+>
+> ​	UUID 6E40000**3**B5A3F393E0A9E50E24DCCA9E
+
+Je commence par me connecter à la Micro:bit, puis je m'intéresse plus en détail au service BLE UART grâce aux commandes `primary` et `char-desc`.
+
+==TODO : Modifier les handle==
+
+```
+gatttool -I -b <AdresseMAC> -t random
+[AC:2D:45:CE:78:1E][LE]> connect
+Attempting to connect to AC:2D:45:CE:78:1E
+Connection successful
+[AC:2D:45:CE:78:1E][LE]> primary 6e400001-b5a3-f393-e0a9-e50e24dcca9e
+Starting handle: 0x Ending handle: 0x
+[AC:2D:45:CE:78:1E][LE]> char-desc 0x 0x
+handle: 0x00, uuid: 00002800-0000-1000-8000-00805f9b34fb
+handle: 0x00, uuid: 00002803-0000-1000-8000-00805f9b34fb
+handle: 0x00, uuid: 6e400002-b5a3-f393-e0a9-e50e24dcca9e
+handle: 0x0012, uuid: 00002902-0000-1000-8000-00805f9b34fb
+handle: 0x00, uuid: 00002803-0000-1000-8000-00805f9b34fb
+handle: 0x00, uuid: 6e400003-b5a3-f393-e0a9-e50e24dcca9e
+```
+
+D'après les [spécifications du BLE](https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml), l'UUID des CCCD doivent commencer par 00002902, je repère ainsi que le handle que je recherche est le 0x0012 (base 16), soit le 18 en base décimale. 
+
+La spécification indique aussi les différentes valeurs possibles du CCCD.
+
+| Valeur (base 16) | 0x0000                                   | 0x0100                                | 0x0200                                |
+| ---------------- | ---------------------------------------- | ------------------------------------- | ------------------------------------- |
+| Signification    | Notify désactivé<br />Indicate désactivé | Notify désactivé<br />Indicate activé | Notify activé<br />Indicate désactivé |
+
+Je veux activer Notify, je dois donc écrire 0x0200 dans le CCCD ayant le handle 0x0012.
+
+Après ces longues précisons, revenons à l'explication de la fonction `connectBLE`.
+
+```python
+def connectBLE(dev):
+    ...
+    if (dev.connectable):
+        ...
+        type = dev.addrType
+        p = Peripheral()
+        p.connect(dev.addr, type)
+        ...
+        p.writeCharacteristic(0x0012, b"\x02\x00", False)
+		...
+        ready(dev, p)
+    else:
+        print bcolors.FAIL + "[" + dev.addr + "] Device isn't connectable"
+```
+
+Pour activer l'envoi des notifications liées au BLE, c'est-à-dire pour faire fonctionner le service BLE UART, j'utilise `writeCharacteristic(0x0012, b"\x02\x00", False)` pour écrire la valeur 0x0200 dans l'adresse 0x0012. Le False indique que je n'attend pas de confirmation de modification du CCCD.
+
+On appelle ensuite la fonction `ready`. 
+
+```python
+def ready (dev, p):
+    ...
+    p.setDelegate(MyDelegate(dev))
+    peripherals.append([dev, p])
+```
+
+La fonction `setDelegate` prend en argument une classe héritant de `DefaultDelegate`. La méthode `handleNotification` de cette classe sera appelée lors de la réception d'une notification. J'ajoute ensuite le périphérique au tableau `peripherals` répertoriant l'ensemble des périphériques connectés.
+
+Dans cette version du programme, les Micro:bits envoient sur la liaison série BLE UART les 3 axes de l'accéléromètre (xA, yA, zA) séparés par un point-virgule, puis les 3 axes du gyroscopes (xC, yC, zC) eux aussi séparés d'un point-virgule. Voici par exemple un cycle complet.
+
+* xA123;yA0;zA-23
+* xC5214;yC85621;zC-12
+
+Ce qui signifie :
+
+| x (accéléro.) | y (accéléro.) | z (accéléro.) | x (gyro.) | y (gyro.) | z (gyro.) |
+| ------------- | ------------- | ------------- | --------- | --------- | --------- |
+| 123           | 0             | -23           | 5214      | 85621     | -12       |
+
+Plus tard dans mon stage, j'ai changé ce fonctionnement car il n'était pas du tout optimisé.
+
+```python
+class MyDelegate(DefaultDelegate):
+
+    def __init__(self, dev):
+        ...
+        DefaultDelegate.__init__(self)
+
+    def handleNotification(self, cHandle, data):
+        self.coords[data[:2]] = data[2:]
+
+        if (...):
+            json = "{'xA':" + self.coords['xA'] + ",'yA':" + self.coords['yA'] + ",'zA':" + self.coords['zA'] + ",'xC':" + self.coords['xC'] + ",'yC':" + self.coords['yC'] + ",'zC':" + self.coords['zC'] + "}"
+            
+            topic = "mb/" + re.search('\[(.*)\]', self.dev.getValueText(9)).group(1)
+            client.publish(topic, payload = json, qos = 0, retain = False)
+```
+
+Ce code se charge d'envoyer les données au broker MQTT sous forme de JSON. Le JSON est un format de données textuelles très léger basé sur la notation des objets en JavaScript. Il ressemble à ceci : 
+
+```json
+{
+    "xA": 123,
+    "yA": 0,
+    "zA": -23,
+    "xC": 5214,
+    "yC": 85621,
+    "zC": -12
+}
+```
+
+La variable `topic` contient le topic MQTT sur lequel le message sera envoyé. Ici, c'est `mb/<nomDeLaMicroBit>`. Le nom de la Micro:bit est déterminé grâce à l'expression régulière `\[(.*)\]` qui cherche dans le nom complet du périphérique BLE, qui correspond à ce format : "BBC Microbit [NomDeLaMicroBit]". 
+
+* `\[` cherche le caractère [.
+* `(.*)` signifie tous les caractères un nombre illimité de fois
+* `\]` cherche le caractère ].
+
+L'expression régulière cherche donc n'importe quelle chaîne de caractères entourée de crochets.
+
+La fonction `publish` envoie finalement les données au broker MQTT. Le message a atteint sa destination finale.
+
+## Les limitations du BLE
+
+Le serveur Python était maintenant entièrement finalisé. Je commence alors la phase de tests. Tout se passe bien, jusqu'à ce je bouge une Micro:bit dans une position particulière. À ce moment, mon serveur recommence à recevoir des paquets BLE (notifications) mal formatés. Le problème que j'avais rencontré avec le MQTT-SN était revenu.
+
+Je relance plusieurs fois le programme jusqu'à cerner la source du problème : dès qu'un envoi dépasse les 20 caractères, les paquets sont mal formatés. Or pour le gyroscope, lorsque les valeurs sont grandes (elles sont enregistrées sur 16 bits, $ xC, yC, zC \in [-32 768 ; 32 767] $) la notification envoyant les données du gyroscope dépasse les 20 caractères. 
+
+En cherchant dans les spécifications du BLE, je me rend compte que le BLE est conçu pour transporter des données inférieures ou égales à 20 octets. Mon programme envoie des chaînes de caractères ASCII. Chaque caractère ASCII est représenté sur un octet (8 bits), j'étais donc limité à 20 caractères avec cette méthode. Il m'était impossible de continuer avec ce format de données, ma solution avait un problème critique.
+
+Le problème parfaitement identifié, je fais part du problème dans mon mail de rapport que j'envoie à mon tuteur. 
+
+Après réflexion, j'avais dégagé deux solutions envisageables :
+
+* Envoyer les données axe par axe comme ceci :
+  * xA123
+  * yA0
+  * zA-23
+  * xC5214
+  * yC85621
+  * zC-12
+* Travailler sur mon format de données en bas-niveau, afin de ne plus envoyer de chaîne ASCII mais directement mes données sous le format binaire
+
+La première solution était beaucoup plus simple à mettre en place, mais réduisait drastiquement la fréquence du signal créé. En effet, là où il fallait avant 2 notifications pour transmettre l'ensemble des données, il en faudrait maintenant 6.
+
+La seconde solution me semblait donc meilleure. Et après avoir consulté mon tuteur lors de notre réunion hebdomadaire, c'est celle-ci que j'ai développée.
+
+J'avais 20 octets à ma disposition, soit 160 bits. Chaque axe de l'accéléromètre utilise 11 bits au maximum ($ xA, yA, zA \in [-1024 ; 1023] $), tandis que chaque axe de l'accéléromètre utilise 16 bits au maximum. Afin de faciliter le traitement des données en aval, j'ai choisi d'affecter 16 bits pour chaque axe, de l'accéléromètre comme du gyroscope. En effet, je n'aurai pas à gérer les différentes possibilités sur mon script Python.
+
+Avec les 3 axes par capteur, chaque axe prenant 16 bits, j'utilisais donc $3 * 2 * 16 = 96$ bits, laissant 64 bits vides.
+
+==TODO : IMAGE DU BITMAP==
+
+Le bitmap étant maintenant bien défini, je devais désormais implémenter ce traitement bas-niveau en C++ et en Python. Je ne suis pas habitué à utiliser des langages bas-niveau. En effet, la grande majorité de mes projets personnels utilise des langages haut niveau comme le Node.js, le Python, le PHP ou encore le Java. C'est la partie de mon stage que j'ai trouvé la plus compliquée, mais par conséquent, aussi l'une des plus intéressantes.
+
+J'ai commencé par le C++ embarqué sur la Micro:bit. Je crée une variable de type `PacketBuffer` qui contiendra les données à envoyer. Je lui alloue 12 octets, soit 96 bits. 
+
+```c++
+int16_t xA = uBit.accelerometer.getX();
+int16_t yA = uBit.accelerometer.getY();
+int16_t zA = uBit.accelerometer.getZ();
+int16_t xC = uBit.compass.getX();
+int16_t yC = uBit.compass.getY();
+int16_t zC = uBit.compass.getZ();
+
+PacketBuffer buf(12);
+```
+
+Je vais procéder octet par octet pour remplir cette variable. Pour cela, j'ai dû me renseigner sur les bitwise operators, les opérateurs permettant de manipuler les bits. On y retrouve, entre autres : 
+
+* Les décalages à gauche ou à droite (left/right shifts), avec les opérateurs `<<` et `>>`. Ils décalent les bits du nombre de gauche de $x$ positions, où $x$ est le nombre de droite.
+* Le bitwise AND, représenté par l'opérateur `&`. C'est une porte AND fonctionnant bit par bit.
+
+Les deux premiers octets, l'octet 0 et l'octet 1, sont affectés par les opérations suivantes.
+
+```c++
+buf[0] = (xA >> (8 * 0)) & 0xff;
+buf[1] = (xA >> (8 * 1)) & 0xff;
+```
+
+Tous deux ont comme point de départ la variable `xA`, qui est de type `int16_t`, donc sur 16 bits. On remarque que l'on a ensuite une partie se chargeant d'un décalage à droite (`>> (8 * number)`). Pour la première ligne, on décale `xA` de $8 * 0$ soit... 0 bit. En effet, on veut prendre les 8 premiers bits de la variable pour les mettre dans le premier octet du buffer. Cette partie pourrait donc être supprimée dans ce cas, mais j'ai choisi de la laisser pour aider à la compréhension. Vient ensuite le deuxième octet, que l'on décale cette fois-ci de 8 bits, soit d'un octet. Le dernier octet se retrouve ainsi être le premier. 
+
+La dernière partie de l'opération `& 0xff` (qui équivaut à `& 0xff00`) permet de tronquer et de ne garder que le premier octet. En effet, en faisant une opération AND bit à bit, les 8 premiers bits garderont leur valeur.
+
+La stratégie est la même pour tous les autres axes.
+
+```c++
+buf[2] = (yA >> (8 * 0)) & 0xff;
+buf[3] = (yA >> (8 * 1)) & 0xff;
+buf[4] = (zA >> (8 * 0)) & 0xff;
+buf[5] = (zA >> (8 * 1)) & 0xff;
+buf[6] = (xC >> (8 * 0)) & 0xff;
+buf[7] = (xC >> (8 * 1)) & 0xff;
+buf[8] = (yC >> (8 * 0)) & 0xff;
+buf[9] = (yC >> (8 * 1)) & 0xff;
+buf[10] = (zC >> (8 * 0)) & 0xff;
+buf[11] = (zC >> (8 * 1)) & 0xff;
+
+uart->send(buf);
+```
+
+Le programme embarqué étant modifié, il faut maintenant modifier le serveur Python.
 
 ## Envoi vers un serveur MQTT et sauvegarde sur une base de données
 
