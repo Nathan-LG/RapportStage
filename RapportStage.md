@@ -148,6 +148,8 @@ Mon stage consiste donc à créer un dispositif que les patients pourraient port
 
 Une seconde partie de mon stage consiste à développer une solution pour afficher le signal cardiaque d'un patient immobile et en extraire les pics P, Q, R, S et T, qui peuvent être utilisés lors d'une consultation avec un médecin comme test de dépistage du SPC.
 
+==TODO : Screen des pics==
+
 Mes travaux seront ensuite remis à deux groupes de chercheurs, l'un étant spécialisé dans l'exploitation des données accélérométriques et gyroscopiques lors des tests de SPC, l'autre dans l'exploitation des données cardiaques lors des tests de SPC.
 
 [^1]: https://www.cdc.gov/mmwr/volumes/66/ss/ss6609a1.htm
@@ -165,7 +167,11 @@ Mon stage se décompose en plusieurs objectifs. Initialement, les objectifs éta
 
 ### Objectifs initiaux
 
-1. Récupérer des données des accéléromètres / gyroscopes de 3 cartes Micro:bit en  parallèle afin de les envoyer à un serveur local (PC ou Raspberry Pi) via Bluetooth Low Energy (BLE). Le serveur doit ensuite traiter les données afin de les  formater en JSON pour finalement les envoyer vers un serveur MQTT (via le protocole MQTT). Le serveur doit pouvoir gérer à tout moment des  connexions / déconnexions d'une ou plusieurs Micro:bits sans impacter les autres Micro:bits. Un GUI doit être créé pour visualiser les données en temps réel.
+1. Récupérer des données des accéléromètres / gyroscopes de 3 cartes Micro:bit en  parallèle afin de les envoyer à un serveur local (PC ou Raspberry Pi) via Bluetooth Low Energy (BLE). Le serveur doit ensuite traiter les données afin de les  formater en JSON pour finalement les envoyer vers un serveur MQTT (via le protocole MQTT). Le serveur doit pouvoir gérer à tout moment des  connexions / déconnexions d'une ou plusieurs Micro:bits sans impacter les autres Micro:bits.
+
+   Les Battements Par Minute doivent être récupérés en même temps par le capteur Polar H10. 
+
+   Un GUI doit être créé pour visualiser les données en temps réel.
 
 2. Récupérer un signal cardiaque en utilisant un AD8232 et une carte basée sur un ATMega. Ce signal cardiaque doit ensuite être envoyé à un ordinateur (Raspberry Pi) afin d'exploiter ce signal (traitement du signal) et en déduire les valeurs suivantes :
 
@@ -189,7 +195,11 @@ En effet, je me suis aperçu que le capteur ne permet pas de récupérer le sign
 
 Les objectifs finals sont donc :
 
-1. Récupérer des données des accéléromètres / gyroscopes de 3 cartes Micro:bit en  parallèle afin de les envoyer à un serveur local (PC ou Raspberry Pi) via Bluetooth Low Energy (BLE). Le serveur doit ensuite traiter les données afin de les  formater en JSON pour finalement les envoyer vers un serveur MQTT (via le protocole MQTT). Le serveur doit pouvoir gérer à tout moment des  connexions / déconnexions d'une ou plusieurs Micro:bits sans impacter les autres Micro:bits. Un GUI doit être créé pour visualiser les données en temps réel.
+1. Récupérer des données des accéléromètres / gyroscopes de 3 cartes Micro:bit en  parallèle afin de les envoyer à un serveur local (PC ou Raspberry Pi) via Bluetooth Low Energy (BLE). Le serveur doit ensuite traiter les données afin de les  formater en JSON pour finalement les envoyer vers un serveur MQTT (via le protocole MQTT). Le serveur doit pouvoir gérer à tout moment des  connexions / déconnexions d'une ou plusieurs Micro:bits sans impacter les autres Micro:bits.
+
+   Les Battements Par Minute doivent être récupérés en même temps par le capteur Polar H10.
+
+   Un GUI doit être créé pour visualiser les données en temps réel.
 
 2. Récupérer un signal cardiaque en utilisant un AD8232 et une carte basée sur un ATMega. Ce signal cardiaque doit ensuite être envoyé à un ordinateur (Raspberry Pi) afin d'exploiter ce signal (traitement du signal) et en déduire les valeurs suivantes en les affichant sur un GUI :
 
@@ -755,7 +765,7 @@ La première solution était beaucoup plus simple à mettre en place, mais rédu
 
 La seconde solution me semblait donc meilleure. Et après avoir consulté mon tuteur lors de notre réunion hebdomadaire, c'est celle-ci que j'ai développée.
 
-J'avais 20 octets à ma disposition, soit 160 bits. Chaque axe de l'accéléromètre utilise 11 bits au maximum ($ xA, yA, zA \in [-1024 ; 1023] $), tandis que chaque axe de l'accéléromètre utilise 16 bits au maximum. Afin de faciliter le traitement des données en aval, j'ai choisi d'affecter 16 bits pour chaque axe, de l'accéléromètre comme du gyroscope. En effet, je n'aurai pas à gérer les différentes possibilités sur mon script Python.
+J'avais 20 octets à ma disposition, soit 160 bits. Chaque axe de l'accéléromètre utilise 11 bits au maximum ($ xA, yA, zA \in [-1024 ; 1023] $), tandis que chaque axe du gyroscope utilise 16 bits au maximum. Afin de faciliter le traitement des données en aval, j'ai choisi d'affecter 16 bits pour chaque axe, de l'accéléromètre comme du gyroscope. En effet, je n'aurai pas à gérer les différentes possibilités sur mon script Python.
 
 Avec les 3 axes par capteur, chaque axe prenant 16 bits, j'utilisais donc $3 * 2 * 16 = 96$ bits, laissant 64 bits vides.
 
@@ -763,7 +773,9 @@ Avec les 3 axes par capteur, chaque axe prenant 16 bits, j'utilisais donc $3 * 2
 
 Le bitmap étant maintenant bien défini, je devais désormais implémenter ce traitement bas-niveau en C++ et en Python. Je ne suis pas habitué à utiliser des langages bas-niveau. En effet, la grande majorité de mes projets personnels utilise des langages haut niveau comme le Node.js, le Python, le PHP ou encore le Java. C'est la partie de mon stage que j'ai trouvé la plus compliquée, mais par conséquent, aussi l'une des plus intéressantes.
 
-J'ai commencé par le C++ embarqué sur la Micro:bit. Je crée une variable de type `PacketBuffer` qui contiendra les données à envoyer. Je lui alloue 12 octets, soit 96 bits. 
+J'ai commencé par le C++ embarqué sur la Micro:bit. Après plusieurs recherches, je suis arrivé à une solution fonctionnelle. 
+
+Je crée une variable de type `PacketBuffer` qui contiendra les données à envoyer. Je lui alloue 12 octets, soit 96 bits. 
 
 ```c++
 int16_t xA = uBit.accelerometer.getX();
@@ -788,7 +800,7 @@ buf[0] = (xA >> (8 * 0)) & 0xff;
 buf[1] = (xA >> (8 * 1)) & 0xff;
 ```
 
-Tous deux ont comme point de départ la variable `xA`, qui est de type `int16_t`, donc sur 16 bits. On remarque que l'on a ensuite une partie se chargeant d'un décalage à droite (`>> (8 * number)`). Pour la première ligne, on décale `xA` de $8 * 0$ soit... 0 bit. En effet, on veut prendre les 8 premiers bits de la variable pour les mettre dans le premier octet du buffer. Cette partie pourrait donc être supprimée dans ce cas, mais j'ai choisi de la laisser pour aider à la compréhension. Vient ensuite le deuxième octet, que l'on décale cette fois-ci de 8 bits, soit d'un octet. Le dernier octet se retrouve ainsi être le premier. 
+Tous deux ont comme point de départ la variable `xA`, qui est de type `int16_t`, donc sur 16 bits. On remarque que l'on a ensuite une partie se chargeant d'un décalage à droite (`>> (8 * number)`). Pour la première ligne, on décale `xA` de $8 * 0$ soit... 0 bit. En effet, on veut prendre les 8 premiers bits de la variable pour les mettre dans le premier octet du buffer. Vu qu'il n'y finalement aucun changement, cette partie pourrait donc être supprimée. Mais j'ai choisi de la laisser pour aider à la compréhension. Pour le deuxième octet (ligne 2), on le décale cette fois-ci de 8 bits, soit d'un octet. Le dernier octet de xA se retrouve ainsi être le premier. 
 
 La dernière partie de l'opération `& 0xff` (qui équivaut à `& 0xff00`) permet de tronquer et de ne garder que le premier octet. En effet, en faisant une opération AND bit à bit, les 8 premiers bits garderont leur valeur.
 
@@ -809,13 +821,129 @@ buf[11] = (zC >> (8 * 1)) & 0xff;
 uart->send(buf);
 ```
 
-Le programme embarqué étant modifié, il faut maintenant modifier le serveur Python.
+Le programme embarqué étant modifié, il faut maintenant modifier le serveur Python. Pour cela je suis arrivé à ce code.
 
-## Envoi vers un serveur MQTT et sauvegarde sur une base de données
+```python
+xABit = [ord(data[0]), ord(data[1])]
+xABin = "{0:08b}".format(xABit[1]) + "{0:08b}".format(xABit[0])
+xA = signedInt(int(xABin, 2), 65536)
+```
+
+`xABit` est un tableau de 2 valeurs, un octet chacune. La variable `data` contient une chaîne de caractères envoyée par la Micro:bit. Chaque octet envoyé par la Micro:bit correspond à un caractère défini par la table ASCII. La fonction `ord` permet de récupérer la valeur numérique derrière chacun de ces caractères.  
+
+La variable `xABin` transforme les deux valeurs numériques en valeur binaire, puis `xA` utilise la fonction `signedInt` pour interpréter ce nombre binaire comme int signé.
+
+On applique ce même raisonnement pour chaque donnée, et l'information est ainsi reconstituée entièrement.
+
+Avec cette nouvelle méthode, tous les paquets font à présent moins de 20 octets, et l'ensemble des données sont transférées avec un seul paquet. Les différents tests que j'effectue ensuite sont tout à fait concluants : je n'ai rencontré aucune déconnexion ou aucun paquet mal formaté. Le serveur Python récupère bien la totalité des données.
+
+Je fais la démonstration à mon tuteur, qui m'indique qu'il serait bien que les informations soient sauvegardées en même temps dans une base de données. 
+
+## Envoi vers le serveur MQTT et sauvegarde sur une base de données
+
+Les données arrivent à présent sans encombre au serveur Python, qui les transfère ensuite au broker MQTT iot.eclipse.org. Pour pouvoir tester sans encombre le système complet, il me fallait un moyen de vérifier que les informations arrivaient bien au broker.
+
+Le logiciel [MQTT-Spy](https://github.com/eclipse/paho.mqtt-spy) permet de faire exactement ceci. C'est un GUI (un logiciel affichant des données et permettant à l'utilisateur de faire des actions grâce à des boutons et d'autres moyens d’interaction). Ce logiciel affiche les données du broker MQTT. Il permet aussi de tracer des graphiques avec les données reçues. C'est exactement ce que je cherchais. Il utilise Java, et demande d'être lancé en ligne de commande.
+
+```bash
+java -jar mqtt-spy.jar
+```
+
+Une fois le broker MQTT renseigné ainsi que les topics à suivre, les données commencent à arriver dans le logiciel et les courbes se tracent. Cependant, beaucoup d'étapes sont nécessaires pour arriver à ce résultat fonctionnel.
+
+==TODO : Screens MQTT-Spy==
+
+Mais je m'en contente pour l'instant, car je me concentre sur la création de la base de données. Pour cela, j'installe MySQL et phpMyAdmin, pour faciliter le traitement.
+
+```bash
+sudo apt-get install mysql-server phpmyadmin
+```
+
+Une fois l'installation et la configuration effectuée, je dois créer la base de données. La table est assez simple, la clé primaire étant un identifiant unique auto-incrémenté.
+
+| Nom de l'entrée | Type          | Commentaires                |
+| --------------- | ------------- | --------------------------- |
+| ID              | mediumint(11) | Auto-incrémenté             |
+| mb              | varchar(6)    | Nom de la Micro:bit         |
+| xA              | smallint(6)   |                             |
+| yA              | smallint(6)   |                             |
+| zA              | smallint(6)   |                             |
+| xC              | smallint(6)   |                             |
+| yC              | smallint(6)   |                             |
+| zC              | smallint(6)   |                             |
+| date            | datetime(3)   | Précision à la milliseconde |
+
+Le paquet [MySQLdb](https://pypi.org/project/MySQL-python/) disponible sur pip permet à Python de se connecter à des bases de données MySQL. 
+
+Les fonctions `execute` et `commit` permettent d'écrire dans la BDD.
+
+```python
+cur.execute('INSERT INTO accelerometers (mb, xA, yA, zA, xC, yC, zC, date) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(3))', (shortName, xA, yA, zA, xC, yC, zC))
+db.commit()
+```
 
 ##  Acquisition des BPM avec un Polar Device
 
+En parallèle des Micro:bits, je devais à présent récupérer les BPM en utilisant le capteur Polar H10.
+
+Je vais devoir une nouvelle fois utiliser gatttool pour exploiter les informations. En effet, le capteur est conçu pour fonctionner facilement avec d'autres produits de la gamme Polar, et non avec d'autres systèmes. La première étape est de trouver l'UUID et le handle du Service correspondant aux BPM. 
+
+En cherchant dans les spécifications du BLE, je trouve une [spécification sur les services "Heart Rate"](https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.heart_rate.xml&u=org.bluetooth.service.heart_rate.xml).
+
+> The HEART RATE Service exposes heart rate and other data related to a heart rate sensor intended for fitness applications.
+
+Il y a de grandes chances que le capteur Polar respecte cette norme. Celle-ci indique que l'UUID commence par 0000180D. C'est donc cette chaîne que je vais chercher en priorité lors de mon gatttool.
+
+==TODO : Gatttool==
+
+Maintenant que je connais le handle, je recherche le CCCD pour activer les notifications.
+
+==TODO : Gatttool CCCD==
+
+Je reçois à présent les notifications. Cependant, les données renvoyées sont brutes et inexploitables sans en connaître la notification. Je me reporte donc aux spécifications. Les 8 premiers bits sont les flags. Ils donnent des renseignements indispensables à l'exploitation du reste des données. Les bits 5 à 7 sont réservés pour une possible utilisation future.
+
+| Bit 0 : BPM                                     | Bits 1 & 2 : Fonctionnalité de détection de contact          | Bit 3 : Énergie dépensée             | Bit 4 : Intervalle RR                |
+| ----------------------------------------------- | ------------------------------------------------------------ | ------------------------------------ | ------------------------------------ |
+| 0 : codés sur 8 bits<br />1 : codés sur 16 bits | 0 & 1 : Non supportée<br />2 : Supportée, pas de contact<br />3 : Supportée, contact détecté | 0 : Non-supportée<br />1 : Supportée | 0 : Non-supportée<br />1 : Supportée |
+
+Le bit 0 est très important pour moi. C'est lui qui va m'indiquer si je dois lire les 8 prochains bits, ou les 16 prochains. Prenons cette notification comme exemple :
+
+```bash
+Notification handle = 0x0010 value: 10 52 23 03
+```
+
+Le premier octet, `10`, soit `00010000`, nous indique que les BPM sont codés sur 8 bits, soit un octet.
+
+Le second octet correspond alors à la donnée que nous voulons acquérir : les BPM. Ici, `52` en base 16 signifie 82 en base en 10. 82 BPM.
+
+La dernière étape est à présent de coder le serveur Python faisant cette action. Je me base sur le serveur Python déjà existant pour les Micro:bits. En effet, le fonctionnement est le même : je dois gérer les connexions, puis écrire dans un CCCD pour finalement traiter les notifications.
+
+```python
+dataRaw = bytearray(dataRaw)
+```
+
+La variable `dataRaw` contient initialement les données brutes envoyées par le Polar H10. Cette ligne de code permet, grâce à la fonction `bytearray`, d'en faire un tableau où chaque cellule est un octet. Le second octet étant celui des BPM, c'est donc `dataRaw[1]` qui contient nos informations. 
+
+On envoie finalement ceci au broker MQTT. L'information doit être aussi sauvegardée dans une base de données. Pour cela, j'ai créé une seconde table MySQL : `bpm`.
+
+| Nom de l'entrée | Type        | Commentaires                |
+| --------------- | ----------- | --------------------------- |
+| ID              | int(11)     | Auto-incrémenté             |
+| bpm             | int(11)     |                             |
+| date            | datetime(3) | Précision à la milliseconde |
+
+```python
+cur.execute('INSERT INTO bpm (bpm, date) VALUES (%s, NOW(3))', (str(dataRaw[1])))
+db.commit()
+```
+
+J'avais fini de travailler avec les Micro:bits et avec le capteur Polar H10. Il me fallait à présent écrire un tutoriel pour utiliser facilement mes programmes, comme me l'a demandé mon tuteur lorsque je lui ai présenté les programmes fonctionnels (Micro:bit et Polar H10).
+
 ## GUI
+
+Lors de l'écriture de ce tutoriel, je me rend compte que l'affichage des courbes pour exploiter les données en temps réel est assez complexe, et risque de poser problème. En effet, les personnes qui utiliseront mon projet n'auront pas de connaissances particulières en informatique. De plus, une solution "plug and play" serait préférable.
+
+
 
 ## Acquisition du signal cardiaque
 
